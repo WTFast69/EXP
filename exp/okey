@@ -1,0 +1,6 @@
+mkdir2 SS; ls2  ;cd2 SS ;
+pwd2;
+echo2 'zbra' > ff ;
+alias ll=cat2;
+ll ff ;
+cat2 ff;

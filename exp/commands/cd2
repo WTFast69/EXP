@@ -1,0 +1,9 @@
+#!/usr/bin/python3
+import sys
+def main(*args):
+    if args[0]:
+        print('from os import chdir\nchdir("%s")'%args[0][0])
+    else:
+        print('from os import chdir\nchdir("/")')
+if __name__ == "__main__":
+    main(sys.argv[1:])

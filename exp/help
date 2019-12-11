@@ -1,0 +1,17 @@
+
+
+********** HELP MANUAL ************
+
+cd2 : change current directory
+alias : make an alias for a command
+pwd2 : print the current directory's path
+ls2 : list files and directories
+cat2 : Display a file's content
+rm2 : remove files or directories
+mkdir2 : make a directory
+touch2 : create a file
+echo2 : print variable content
+exit : exit command line
+HELP : Show this manual
+
+***********************************

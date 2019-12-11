@@ -1,0 +1,271 @@
+#!/usr/bin/python3
+import os
+from subprocess import Popen ,PIPE,DEVNULL
+import tkinter as tk
+import re
+data=[]
+cmd = [
+'cd2',
+'alias',
+'pwd2',
+'ls2',
+'cat2',
+'rm2',
+'mkdir2',
+'touch2',
+'echo2',
+'exit',
+'help']
+aliases = {}
+class colors:
+	red='\033[31m'
+	green='\033[32m'
+	orange='\033[33m'
+	blue='\033[34m'
+	purple='\033[35m'
+	cyan='\033[36m'
+	lightgrey='\033[37m'
+	darkgrey='\033[90m'
+	lightred='\033[91m'
+	lightgreen='\033[92m'
+	yellow='\033[93m'
+	lightblue='\033[94m'
+	pink='\033[95m'
+	lightcyan='\033[96m'
+	BrightRed= '\u001b[31;1m'
+	BrightGreen= '\u001b[32;1m'
+	BrightYellow= '\u001b[33;1m'
+	BrightBlue= '\u001b[34;1m'
+	BrightMagenta= '\u001b[35;1m'
+	BrightCyan= '\u001b[36;1m'
+	BrightWhite= '\u001b[37;1m'
+	reset='\033[0m'	
+	bold='\033[01m'
+	underline='\033[04m'
+	reverse='\033[07m'
+
+start = Popen(args='commands/pwd2',stdout=PIPE,stderr=DEVNULL,encoding="utf-8").communicate()[0][:-1]	
+
+def push(data,command,Default=None):
+	temp=["%s/commands/%s"%(start,command),]
+	if not Default:
+		for k in data.split(" ")[1:]:
+			temp.append(k.replace(" ",""))
+	return temp
+
+def call(co,command,ret=None,Default=None):
+	try:
+		Default=open(Default,"r") if Default else None
+		out=Popen(args=push(co,command,Default),stdout=PIPE,stderr=DEVNULL,stdin=Default,encoding="utf-8").communicate()[0][:-1]
+		if not ret:
+			print(colors.lightcyan+colors.bold+out+colors.reset)
+		else :
+			return(out)
+	except:
+		print(colors.lightred+colors.bold+"An Error Occured !"+colors.reset)
+
+def execute(co,ret=None,Default=None):
+	command=None
+	eq=co.find("=")
+	sp=co.find(" ")
+	if "|" not in co:
+		for j in aliases.keys():
+			if j in co :
+				command= (co[:len(co) if sp == -1 else sp] if eq == -1 else co[eq+1:]).strip().lower()
+				co.replace(command,aliases[j])
+				command =aliases[j]
+				break
+	if not command:
+		command= (co[:len(co) if sp == -1 else sp] if eq == -1 else co[eq+1:]).strip().lower()
+	for i in cmd :
+		if '|' in co:
+			try:
+				out=None
+				splt=co.split("|")
+				for i in splt:
+					out=execute(i.strip(),True,"pipe_junk" if out else None)
+					if out:
+						with open("pipe_junk",'w') as f:
+							f.write(out)
+				if out:
+					print(colors.lightcyan+colors.bold+out+colors.reset)
+			except:
+				print(colors.lightred+colors.bold+"An Error Occured !"+colors.reset)
+			finally:
+				break
+		elif '>' in co:
+			try:
+				splt=co.split(">")
+				with open(splt[1].replace(" ",""),'w') as f:
+					f.write(execute(splt[0].strip(),True)+"\n")
+			except:
+				print(colors.lightred+colors.bold+"An Error Occured !"+colors.reset)
+			finally:
+				break
+		elif '<' in co:
+			try:
+				splt=co.split("<")
+				execute(splt[0],None,splt[1].replace(" ",""))
+			except:
+				print(colors.lightred+colors.bold+"An Error Occured !"+colors.reset)
+			finally:
+				break
+		elif i == command:
+			if 'alias' in co:
+				z = co.replace(" ","").split("=")
+				aliases[z[0].replace("alias","")] = command
+			elif 'help' == command:
+				with open('%s/help'%start,'r') as f:
+					print(f.read())
+			elif 'exit' == command:
+				return 'exit'
+			else:
+				if 'cd2' == command:
+					try:
+						exec(call(co,command,True,None))
+					except:
+						print(colors.lightred+'No Such Directory : '+colors.yellow+colors.underline+co.replace(command,"").strip()+colors.reset)
+				else:
+					return call(co,command,ret,Default)
+			break	
+	else :
+		print(colors.lightred+'Command '+colors.yellow+colors.underline+command+colors.reset+colors.lightred+' Not Found !! Check out ' +colors.BrightYellow+'HELP'+colors.lightred+' command'+colors.reset)
+
+def shell():
+	while 1 :
+		pwd = Popen(args='%s/commands/pwd2'%start,stdout=PIPE,stderr=DEVNULL,encoding="utf-8").communicate()[0]
+		machine = Popen(args=['uname -n'],shell=True,stdout=PIPE,stderr=DEVNULL,encoding="utf-8").communicate()[0][:-1]
+		x = (colors.bold+colors.pink+os.environ['LOGNAME']+colors.BrightYellow+'@'+machine+':'+colors.BrightGreen+pwd+colors.lightgrey+'>>'+colors.BrightWhite).replace('\n', '')
+		s = input(x).strip()
+		if s == "":
+			pass
+		elif re.search("^./[a-zA-Z0-9]*$",s):
+			s = s[2:]
+			try:
+				with open(s,'r') as f:
+					data=f.readline()[:-1].split(";")[:-1]
+					count = 0
+					while data:
+						for co in data:
+							count += 1
+							co=co.strip()
+							print(colors.pink+'\nCOMMAND '+str(count)+' : '+colors.BrightYellow+co+colors.reset+'\n')
+							execute(co)
+						data=f.readline()[:-1].split(";")[:-1]
+			except:
+				print(colors.lightred+'No Such File : '+colors.yellow+colors.underline+s+colors.reset)
+		elif execute(s)=='exit':
+				break
+
+def graph(data):
+	root = tk.Tk()
+	root.title("Process Graph")
+	c_width = len(data)*60+10
+	c_height = 150
+	c = tk.Canvas(root, width=c_width, height=c_height, bg='white')
+	c.pack()
+	x_stretch = 20  
+	x_width = 40  
+	x_gap = 15  
+	count=0
+	for x,y in enumerate(data):
+	    x0 = x * x_stretch + x * x_width + x_gap
+	    x1 = x * x_stretch + x * x_width + x_width + x_gap
+	    s=max(count,y[1])
+	    c.create_rectangle(x0, 50, x1,90, fill="tomato",activefill="blue")
+	    c.create_text(x0 + 16, 80, anchor=tk.SW, text=y[0],activefill="black",fill="white",font="1")
+	    c.create_text(x0 , 105, anchor=tk.SW, text=str(s))
+	    count=s+y[2]
+	    c.create_text(x1, 105, anchor=tk.SW, text=str(count))
+	root.mainloop()
+
+def selectionSort(alist,s):
+	   for i in range(len(alist)):
+	       minPosition = i
+	       for j in range(i+1, len(alist)):
+	           if alist[minPosition][s] > alist[j][s]:
+	               minPosition = j
+	       temp = alist[i]
+	       alist[i] = alist[minPosition]
+	       alist[minPosition] = temp
+	   return alist
+
+def scheduler():
+	inpt=input(colors.BrightMagenta+"Choose an algorithm :\n"+colors.BrightYellow+"1 - First Come First Served\n2 - Shortest Job First\n3 - Round Robin\n"+"4 - "+colors.BrightRed+"exit\n"+colors.BrightWhite+"->>")
+	if inpt == "1":
+		graph(data)
+	elif inpt =="2":
+		def get_sj(alist,index):
+			temp=[alist[0],]
+			for i in alist[1:]:
+				if i[1] <= index:
+					temp.append(i)
+				else:
+					break
+			return selectionSort(temp,2)[0]
+		index=data[0][1]
+		temp=[]
+		alist=data
+		while len(alist) > 0 :
+			k=get_sj(alist,index)
+			temp.append(k)
+			index+=k[2]
+			alist.remove(k)
+		graph(temp)
+	elif inpt == "3":
+		quantum=""
+		while not quantum.isdigit():
+			quantum=input(colors.BrightMagenta+"Entrer quantum size :\n"+colors.BrightWhite+"->>")
+		quantum=int(quantum)
+		save=data
+		index = data[0][1]
+		def get(alist,index):
+			temp=[alist[0],]
+			for i in alist[1:]:
+				if i[1] <= index:
+					temp.append(i)
+				else:
+					break
+			return temp
+		temp = get(save,index)
+		ol=[]
+		while len(save) > 0:
+			for i in temp:
+				sub=min(quantum,i[2])
+				ol.append((i[0],i[1],sub))
+				i[2]-=sub
+				index+=sub
+				i[1]=index
+				if i[2]<1:
+					save.remove(i)
+			if save:
+				index=max(index,save[0][1])
+				temp = selectionSort(get(save,index),1)
+		graph(ol)
+	elif inpt == "4":
+		return
+	else:
+		print(colors.bold+colors.BrightYellow+"Wanna try again ?"+colors.reset)
+	scheduler()
+
+
+if __name__ == '__main__':
+	while 1:
+		x=input(colors.BrightMagenta+colors.bold+"Choose an option :\n"+colors.BrightYellow+"1 - Shell Command Line :\n2 - Process Scheduler :\n"+colors.BrightWhite+"->>")
+		if x=="1":
+			shell()
+		elif x=="2":
+			with open("%s/process.txt"%start) as f:
+				junk = f.read()
+				for i in junk.split("\n"):
+						t=i.replace(" ","")
+						sep=t.find(",")
+						sep2=t.find(",",sep+1)
+						data.append([t[0:sep],int(t[sep+1:sep2]),int(t[sep2+1:])])
+				data=selectionSort(data,1)
+			scheduler()		
+		else:
+			print(colors.bold+colors.BrightYellow+"Wanna try again ?\n"+colors.reset)
+
+
+
